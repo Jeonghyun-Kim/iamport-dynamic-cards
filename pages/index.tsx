@@ -1,5 +1,4 @@
 import React from 'react';
-import NextHead from 'next/head';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useUI } from '@components/ui/context';
@@ -147,16 +146,6 @@ const IndexPage = () => {
 
   return (
     <>
-      <NextHead>
-        <script
-          type="text/javascript"
-          src="https://code.jquery.com/jquery-1.12.4.min.js"
-        />
-        <script
-          type="text/javascript"
-          src="https://cdn.iamport.kr/js/iamport.payment-1.1.8.js"
-        />
-      </NextHead>
       <div className="mx-auto max-w-screen-lg text-2xl pt-4 h-[1200px] flex justify-center">
         {/* <p className="text-xl">hello world</p> */}
         <div className="space-y-4">
