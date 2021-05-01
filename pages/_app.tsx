@@ -7,6 +7,8 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import Router from 'next/router';
 import NProgress from 'nprogress';
+import { DefaultSeo } from 'next-seo';
+
 import ManagedUIContext from '@components/ui/context';
 import Layout from '@components/ui/Layout';
 
@@ -35,7 +37,27 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
           type="text/javascript"
           src="https://cdn.iamport.kr/js/iamport.payment-1.1.8.js"
         />
+        <title>아임포트 카드사 제외 테스트 | ONDP</title>
       </Head>
+      <DefaultSeo
+        titleTemplate="%s | ONDP"
+        defaultTitle="아임포트 카드사 제외 테스트 | ONDP"
+        openGraph={{
+          type: 'website',
+          title: '아임포트 카드사 제외 테스트 | ONDP',
+          description: '금액별 노출 제외 카드사를 위한 테스트',
+          images: [
+            {
+              url: 'https://iamport.vercel.app/open_graph.jpg',
+              width: 1200,
+              height: 628,
+              alt: 'COLLECTED',
+            },
+          ],
+        }}
+        defaultOpenGraphImageWidth={1200}
+        defaultOpenGraphImageHeight={628}
+      />
       <ManagedUIContext>
         <Layout>
           <Component {...pageProps} />
