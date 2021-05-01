@@ -14,7 +14,8 @@ const handler: (
       const { imp_uid, merchant_uid, imp_success } = req.query;
 
       if (!imp_success || imp_success === 'false') {
-        return res.status(400).end();
+        res.redirect('/');
+        return;
       }
 
       const {
