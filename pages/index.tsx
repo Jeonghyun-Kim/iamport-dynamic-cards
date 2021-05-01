@@ -1,149 +1,186 @@
 import React from 'react';
-import Dropdown from '@components/ui/Dropdown';
+import NextHead from 'next/head';
+import { v4 as uuidv4 } from 'uuid';
 
-import { ChevronDownIcon } from '@heroicons/react/solid';
 import { useUI } from '@components/ui/context';
+
 import Button from '@components/ui/Button';
 import Select from '@components/ui/Select';
 
-const genders = [
+import fetcher from '@lib/fetcher';
+
+const impCode = process.env.NEXT_PUBLIC_IMP_CODE;
+if (!impCode) throw new Error('Missing NEXT_PUBLIC_IMP_CODE');
+
+const cardListOptions = [
   {
-    key: 'gender0',
+    key: 'key1',
     label: '선택',
     value: null,
   },
   {
-    key: 'gender1',
-    label: '남성',
-    value: 'male',
+    key: 'key2',
+    label: '모든 카드',
+    value: 'all',
   },
   {
-    key: 'gender2',
-    label: '여성',
-    value: 'female',
+    key: 'key3',
+    label: 'BC 제외',
+    value: 'exceptBC',
   },
   {
-    key: 'gender3',
-    label: '기타',
-    value: 'other',
+    key: 'key4',
+    label: 'BC, 국민 제외',
+    value: 'exceptBCKB',
   },
 ];
 
 const IndexPage = () => {
-  const { showModal, closeModal, showNoti } = useUI();
-  const [gender, setGender] = React.useState<{
+  const { showModal, closeModal } = useUI();
+  const [option, setOption] = React.useState<{
     key: string;
     label: string;
     value: string | null;
-  }>(genders[0]);
+  }>(cardListOptions[0]);
+
+  const handleRequest = React.useCallback(
+    (option: 'all' | 'exceptBC' | 'exceptBCKB') => {
+      const IMP = window.IMP;
+
+      const { protocol, hostname, port } = window.location;
+
+      IMP.init(impCode);
+
+      const merchantId = uuidv4();
+
+      const cardOptions: { card_code: string; enabled: boolean }[] = [
+        { card_code: '*', enabled: true },
+      ];
+
+      switch (option) {
+        case 'exceptBC':
+          cardOptions.push({ card_code: '361', enabled: false });
+          break;
+        case 'exceptBCKB':
+          cardOptions.push(
+            { card_code: '361', enabled: false },
+            { card_code: '381', enabled: false },
+          );
+          break;
+      }
+
+      IMP.request_pay(
+        {
+          pay_method: 'card',
+          merchant_uid: merchantId,
+          name: '테스트 상품',
+          amount: 1000,
+          tax_free: 0,
+          buyer_name: 'tester',
+          buyer_tel: '',
+          buyer_email: '',
+          m_redirect_url: `${protocol}//${hostname}:${port}/api/complete/mobile`,
+          card: { detail: cardOptions },
+        },
+        (rsp: IMPResult) => {
+          if (rsp.success) {
+            fetcher('/api/complete/desktop', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                imp_uid: rsp.imp_uid,
+                merchant_uid: rsp.merchant_uid,
+              }),
+            })
+              .then((response) => {
+                console.log(response);
+                showModal({
+                  variant: 'default',
+                  title: 'SUCCESS',
+                  content: '자세한 내용은 콘솔을 확인하세요.',
+                  actionButton: {
+                    label: '확인',
+                    onClick: () => closeModal(),
+                  },
+                  cancelButton: {
+                    label: '닫기',
+                    onClick: () => closeModal(),
+                  },
+                });
+              })
+              .catch((error) => {
+                console.error(error);
+                showModal({
+                  variant: 'alert',
+                  title: 'Failed',
+                  content: error.message,
+                  actionButton: {
+                    label: '확인',
+                    onClick: () => closeModal(),
+                  },
+                  cancelButton: {
+                    label: '닫기',
+                    onClick: () => closeModal(),
+                  },
+                });
+              });
+          } else {
+            showModal({
+              variant: 'alert',
+              title: 'Failed',
+              content: rsp.error_msg,
+              actionButton: {
+                label: '확인',
+                onClick: () => closeModal(),
+              },
+              cancelButton: {
+                label: '닫기',
+                onClick: () => closeModal(),
+              },
+            });
+          }
+        },
+      );
+    },
+    [showModal, closeModal],
+  );
 
   return (
-    <div className="mx-auto max-w-screen-lg text-2xl pt-4 h-[1200px] flex justify-center">
-      {/* <p className="text-xl">hello world</p> */}
-      <div className="space-y-4">
-        <Dropdown
-          button={
-            <div className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-              options
-              <ChevronDownIcon
-                className="-mr-1 ml-2 h-5 w-5"
-                aria-hidden="true"
-              />
-            </div>
-          }
-          dropdownItems={[
-            { label: 'hello', onClick: () => {} },
-            { label: 'world', onClick: () => {} },
-          ]}
+    <>
+      <NextHead>
+        <script
+          type="text/javascript"
+          src="https://code.jquery.com/jquery-1.12.4.min.js"
         />
-        <Select
-          label="성별"
-          items={genders}
-          selectedValue={gender.value}
-          onSelect={(item) => setGender(item as never)}
+        <script
+          type="text/javascript"
+          src="https://cdn.iamport.kr/js/iamport.payment-1.1.8.js"
         />
-        <div>
-          <Button
-            onClick={() =>
-              showModal({
-                variant: 'alert',
-                title: '댓글을 완전히 삭제할까요?',
-                content:
-                  '삭제된 댓글은 복구할 수 없습니다. 댓글에 달린 모든 답글도 함께 삭제됩니다.',
-                actionButton: {
-                  label: '삭제',
-                  onClick: () => {
-                    closeModal();
-                  },
-                },
-                cancelButton: {
-                  label: '취소',
-                  onClick: () => closeModal(),
-                },
-              })
-            }
-          >
-            open alert modal
-          </Button>
-        </div>
-
-        <div>
-          <Button
-            onClick={() =>
-              showModal({
-                title: '댓글을 완전히 복구?',
-                content:
-                  '복구된 댓글은 삭제할 수 없습니다. 댓글에 달린 모든 답글도 함께 복구됩니다.',
-                actionButton: {
-                  label: '복구',
-                  onClick: () => {
-                    closeModal();
-                  },
-                },
-                cancelButton: {
-                  label: '취소',
-                  onClick: () => closeModal(),
-                },
-              })
-            }
-          >
-            open modal
-          </Button>
-        </div>
-        <div>
-          <Button
-            onClick={() => showNoti({ title: '알람입니다.', variant: 'alert' })}
-          >
-            alert Noti
-          </Button>
-        </div>
+      </NextHead>
+      <div className="mx-auto max-w-screen-lg text-2xl pt-4 h-[1200px] flex justify-center">
+        {/* <p className="text-xl">hello world</p> */}
         <div className="space-y-4">
-          <Button onClick={() => showNoti({ title: '기본입니다.' })}>
-            default Noti
+          <div className="w-64">
+            <Select
+              label="카드사 목록"
+              items={cardListOptions}
+              selectedValue={option.value}
+              onSelect={(item) => setOption(item as never)}
+            />
+          </div>
+          <Button
+            className="float-right"
+            onClick={() => {
+              if (!option.value) return;
+              handleRequest(option.value as never);
+            }}
+            disabled={!option.value}
+          >
+            결제
           </Button>
-          <div>
-            <Button size="sm">작은버튼</Button>
-          </div>
-          <div>
-            <Button size="base">기본버튼</Button>
-          </div>
-          <div>
-            <Button size="lg">큰버튼</Button>
-          </div>
-          <div>
-            <Button full>긴</Button>
-          </div>
-          <div>
-            <Button color="red" size="lg">
-              빨간샥버튼
-            </Button>
-          </div>
-          <div>
-            <Button color="white">하얀색버튼</Button>
-          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
