@@ -19,7 +19,7 @@ const cardListOptions = [
   },
   {
     key: 'key2',
-    label: '모든 카드',
+    label: '모든 카드사',
     value: 'all',
   },
   {
